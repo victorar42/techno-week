@@ -1,0 +1,143 @@
+# ┌─────────────────────────────────────────────────────────────┐
+# │  🏛️ Reusable DevSecOps Pipeline                            │
+# │                                                             │
+# │  Este es el workflow REUTILIZABLE que cualquier repo del    │
+# │  banco puede invocar con una sola línea.                    │
+# │                                                             │
+# │  Se almacena en un repo central (ej: org/.github) y se     │
+# │  invoca así desde cualquier otro repo:                      │
+# │                                                             │
+# │  jobs:                                                      │
+# │    security:                                                │
+# │      uses: org/.github/.github/workflows/devsecops.yml@main │
+# │      with:                                                  │
+# │        spec-file: openapi.yaml                              │
+# │        node-version: "20"                                   │
+# │      secrets: inherit                                       │
+# │                                                             │
+# │  Beneficio: se define UNA VEZ, se aplica a N repos.         │
+# │  Si se agrega una etapa nueva, todos los repos la reciben.  │
+# └─────────────────────────────────────────────────────────────┘
+
+name: "🔒 Reusable DevSecOps Pipeline"
+
+on:
+  workflow_call:
+    inputs:
+      spec-file:
+        description: "Ruta al archivo OpenAPI spec"
+        required: false
+        type: string
+        default: "openapi.yaml"
+      node-version:
+        description: "Versión de Node.js"
+        required: false
+        type: string
+        default: "20"
+      security-tier:
+        description: "Nivel de seguridad: basic, standard, strict"
+        required: false
+        type: string
+        default: "standard"
+      run-dast:
+        description: "Ejecutar OWASP ZAP (DAST)"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  # ── Siempre se ejecutan (todos los tiers) ──────────────────
+  spec-lint:
+    name: "📋 Spec Lint"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: stoplightio/spectral-action@latest
+        with:
+          file_glob: ${{ inputs.spec-file }}
+
+  secret-scan:
+    name: "🔑 Secret Scan"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependency-check:
+    name: "📦 Dependency Check"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: "npm"
+      - run: npm ci
+      - run: npm audit --audit-level=moderate
+
+  # ── Standard y Strict tiers ────────────────────────────────
+  sast:
+    name: "🔍 SAST Analysis"
+    if: inputs.security-tier == 'standard' || inputs.security-tier == 'strict'
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      - run: semgrep ci --config auto --config p/owasp-top-ten --config p/nodejs
+
+  # ── Solo Strict tier ───────────────────────────────────────
+  dast:
+    name: "⚡ DAST Scan"
+    if: inputs.run-dast && (inputs.security-tier == 'strict')
+    needs: [spec-lint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: "npm"
+      - run: |
+          npm ci
+          npm start &
+          sleep 5
+      - uses: zaproxy/action-api-scan@v0.9.0
+        with:
+          target: "http://localhost:3000/api/v1"
+          format: openapi
+
+  # ── Reporte final ──────────────────────────────────────────
+  compliance-report:
+    name: "📊 Compliance Report"
+    needs: [spec-lint, secret-scan, dependency-check]
+    if: always() && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate report
+        run: |
+          echo "## 🔒 DevSecOps Compliance Report" > report.md
+          echo "" >> report.md
+          echo "**Security Tier:** ${{ inputs.security-tier }}" >> report.md
+          echo "**Spec File:** ${{ inputs.spec-file }}" >> report.md
+          echo "" >> report.md
+          echo "| Check | Status |" >> report.md
+          echo "|-------|--------|" >> report.md
+          echo "| Spec Lint | ${{ needs.spec-lint.result }} |" >> report.md
+          echo "| Secret Scan | ${{ needs.secret-scan.result }} |" >> report.md
+          echo "| Dependency Check | ${{ needs.dependency-check.result }} |" >> report.md
+          echo "" >> report.md
+          echo "*Generated by the org-wide Reusable DevSecOps Pipeline*" >> report.md
+      - uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          path: report.md

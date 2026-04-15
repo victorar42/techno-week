@@ -1,0 +1,67 @@
+# ┌─────────────────────────────────────────────────────────────┐
+# │  🛡️ GitHub Advanced Security — CodeQL Analysis             │
+# │                                                             │
+# │  Este workflow usa CodeQL (nativo de GitHub) para análisis  │
+# │  semántico del código. A diferencia de Semgrep que busca    │
+# │  patrones, CodeQL entiende el flujo de datos completo:      │
+# │  desde el input del usuario hasta el query de base de datos.│
+# │                                                             │
+# │  Complementa el pipeline spec-driven con análisis más       │
+# │  profundo de vulnerabilidades como:                         │
+# │  - SQL Injection (taint tracking)                           │
+# │  - XSS (cross-site scripting)                               │
+# │  - Path traversal                                           │
+# │  - Insecure deserialization                                 │
+# │  - Authentication bypass patterns                           │
+# └─────────────────────────────────────────────────────────────┘
+
+name: "🛡️ CodeQL Analysis (GHAS)"
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # Correr semanalmente para detectar vulnerabilidades nuevas
+    # en dependencias o patrones recién catalogados
+    - cron: "0 6 * * 1" # Lunes a las 6am UTC
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  codeql-analysis:
+    name: "🛡️ CodeQL — Semantic Analysis"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ["javascript-typescript"]
+        # CodeQL soporta: javascript-typescript, python, java-kotlin,
+        # csharp, cpp, go, ruby, swift
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # Usar el suite de queries "security-and-quality" para
+          # máxima cobertura. Alternativas:
+          # - "security-extended" (solo seguridad, menos falsos positivos)
+          # - "default" (balance entre cobertura y ruido)
+          queries: security-and-quality
+
+      # CodeQL auto-detecta el build para JavaScript/TypeScript.
+      # Para lenguajes compilados (Java, C#, C++), agregar paso de build aquí.
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"

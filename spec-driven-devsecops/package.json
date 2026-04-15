@@ -1,0 +1,55 @@
+{
+  "name": "spec-driven-devsecops",
+  "version": "1.0.0",
+  "description": "🔒 Pipeline DevSecOps spec-driven sobre GitHub para APIs bancarias. Demo para Techno Week 8.0 - BCR.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest --coverage",
+    "test:watch": "jest --watch",
+    "lint:spec": "spectral lint openapi.yaml --ruleset .spectral/.spectral-banking.yaml",
+    "lint:code": "eslint src/ --ext .js",
+    "security:sast": "semgrep --config auto src/",
+    "security:secrets": "gitleaks detect --source . --verbose",
+    "security:deps": "npm audit --audit-level=moderate",
+    "security:dast": "scripts/run-zap.sh",
+    "security:all": "npm run lint:spec && npm run security:sast && npm run security:secrets && npm run security:deps",
+    "generate:token": "node scripts/generate-token.js"
+  },
+  "keywords": [
+    "devsecops",
+    "openapi",
+    "security",
+    "banking",
+    "github-actions",
+    "spec-driven",
+    "owasp"
+  ],
+  "author": "ARDOps <hello@ardops.dev>",
+  "license": "MIT",
+  "homepage": "https://ardops.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ardops/spec-driven-devsecops"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "express-rate-limit": "^7.4.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "pino-http": "^10.3.0",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@stoplight/spectral-cli": "^6.13.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.0",
+    "supertest": "^7.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

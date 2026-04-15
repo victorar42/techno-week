@@ -1,0 +1,399 @@
+openapi: "3.1.0"
+info:
+  title: SecureBank API
+  description: |
+    API bancaria de demostración para el pipeline DevSecOps spec-driven.
+    Esta spec actúa como el **contrato de seguridad**: cada endpoint debe definir
+    su esquema de autenticación, sus formatos de datos, y sus restricciones.
+    El pipeline de CI/CD valida automáticamente que el código cumpla con esta spec.
+  version: "1.0.0"
+  contact:
+    name: ARDOps
+    url: https://ardops.dev
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local development
+  - url: https://api.ardops.dev/v1
+    description: Production
+
+# ┌─────────────────────────────────────────────────┐
+# │  SECURITY SCHEMES - Definidos una vez, usados   │
+# │  en cada endpoint. Si un endpoint no los usa,   │
+# │  Spectral lo detecta como violación.            │
+# └─────────────────────────────────────────────────┘
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Token JWT emitido por el servicio de autenticación.
+        Debe incluir claims: sub (user_id), role, exp, iat.
+
+  schemas:
+    # ── Account ──────────────────────────────────
+    AccountBalance:
+      type: object
+      required:
+        - account_id
+        - currency
+        - available_balance
+        - ledger_balance
+        - as_of
+      properties:
+        account_id:
+          type: string
+          format: uuid
+          description: Identificador único de la cuenta
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        account_number:
+          type: string
+          pattern: "^CR\\d{20}$"
+          description: Número IBAN costarricense
+          example: "CR05015202001026284066"
+        currency:
+          type: string
+          enum: [CRC, USD]
+          description: Moneda de la cuenta
+        available_balance:
+          type: number
+          format: double
+          minimum: 0
+          description: Saldo disponible
+          example: 1250000.50
+        ledger_balance:
+          type: number
+          format: double
+          description: Saldo contable
+          example: 1350000.50
+        as_of:
+          type: string
+          format: date-time
+          description: Timestamp de la consulta
+
+    # ── Transfer ─────────────────────────────────
+    TransferRequest:
+      type: object
+      required:
+        - source_account_id
+        - destination_account_id
+        - amount
+        - currency
+        - description
+      properties:
+        source_account_id:
+          type: string
+          format: uuid
+        destination_account_id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          maximum: 50000000
+          description: Monto de la transferencia (máximo 50M CRC)
+        currency:
+          type: string
+          enum: [CRC, USD]
+        description:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Descripción de la transferencia
+        reference:
+          type: string
+          maxLength: 50
+          description: Referencia externa opcional
+
+    TransferResponse:
+      type: object
+      required:
+        - transfer_id
+        - status
+        - created_at
+      properties:
+        transfer_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, completed, failed, reversed]
+        source_account_id:
+          type: string
+          format: uuid
+        destination_account_id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          enum: [CRC, USD]
+        created_at:
+          type: string
+          format: date-time
+
+    # ── Transactions ─────────────────────────────
+    Transaction:
+      type: object
+      required:
+        - transaction_id
+        - type
+        - amount
+        - currency
+        - timestamp
+      properties:
+        transaction_id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [credit, debit]
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          enum: [CRC, USD]
+        description:
+          type: string
+        counterparty:
+          type: string
+          description: Nombre o referencia de la contraparte
+        timestamp:
+          type: string
+          format: date-time
+        balance_after:
+          type: number
+          format: double
+
+    TransactionList:
+      type: object
+      required:
+        - transactions
+        - pagination
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              minimum: 1
+            per_page:
+              type: integer
+              minimum: 1
+              maximum: 100
+            total:
+              type: integer
+            total_pages:
+              type: integer
+
+    # ── Errors ───────────────────────────────────
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Código de error interno
+          example: "AUTH_001"
+        message:
+          type: string
+          description: Mensaje descriptivo del error
+          example: "Token de autenticación inválido o expirado"
+        details:
+          type: object
+          description: Detalles adicionales del error
+
+  responses:
+    Unauthorized:
+      description: Token de autenticación inválido o ausente
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: "AUTH_001"
+            message: "Token de autenticación inválido o expirado"
+    Forbidden:
+      description: No tiene permisos para acceder a este recurso
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: "AUTH_002"
+            message: "No tiene permisos para acceder a esta cuenta"
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    RateLimited:
+      description: Demasiadas solicitudes
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: "RATE_001"
+            message: "Ha excedido el límite de solicitudes. Intente de nuevo en 60 segundos"
+
+# ┌─────────────────────────────────────────────────┐
+# │  PATHS - Cada endpoint DEBE tener security      │
+# │  definido. Si no lo tiene, Spectral falla.      │
+# └─────────────────────────────────────────────────┘
+paths:
+  /accounts/{account_id}/balance:
+    get:
+      operationId: getAccountBalance
+      summary: Consultar saldo de cuenta
+      description: |
+        Retorna el saldo disponible y contable de una cuenta.
+        Requiere que el token JWT pertenezca al titular de la cuenta.
+      tags:
+        - Accounts
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: account_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID único de la cuenta
+      responses:
+        "200":
+          description: Saldo consultado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountBalance"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /transfers:
+    post:
+      operationId: createTransfer
+      summary: Realizar transferencia bancaria
+      description: |
+        Crea una nueva transferencia entre cuentas.
+        Validaciones automáticas:
+        - Saldo suficiente en cuenta origen
+        - Monto dentro de límites permitidos
+        - Cuenta destino válida y activa
+      tags:
+        - Transfers
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferRequest"
+      responses:
+        "201":
+          description: Transferencia creada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferResponse"
+        "400":
+          description: Datos de transferencia inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          description: Saldo insuficiente o cuenta destino inválida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /accounts/{account_id}/transactions:
+    get:
+      operationId: getAccountTransactions
+      summary: Consultar historial de transacciones
+      description: |
+        Retorna el historial de transacciones de una cuenta
+        con paginación. Máximo 100 transacciones por página.
+      tags:
+        - Accounts
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: account_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: from_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Fecha inicial del rango (YYYY-MM-DD)
+        - name: to_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Fecha final del rango (YYYY-MM-DD)
+      responses:
+        "200":
+          description: Transacciones consultadas exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"

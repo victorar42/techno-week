@@ -1,0 +1,112 @@
+# ┌─────────────────────────────────────────────────────────────┐
+# │  Spectral Ruleset — Reglas de seguridad para APIs bancarias │
+# │  Estas reglas extienden el estándar de Spectral y agregan   │
+# │  validaciones específicas para el sector financiero.        │
+# └─────────────────────────────────────────────────────────────┘
+
+extends:
+  - "spectral:oas"
+
+rules:
+  # ── SEGURIDAD ──────────────────────────────────────────────
+
+  # Cada operación DEBE tener seguridad definida
+  operation-security-defined:
+    description: "Cada endpoint debe tener un esquema de seguridad. Un endpoint sin autenticación en una API bancaria es una vulnerabilidad crítica."
+    severity: error
+    given: "$.paths[*][get,post,put,patch,delete]"
+    then:
+      - field: "security"
+        function: truthy
+
+  # La API debe usar HTTPS en servidores de producción
+  server-https:
+    description: "Los servidores de producción deben usar HTTPS."
+    severity: warn
+    given: "$.servers[*].url"
+    then:
+      function: pattern
+      functionOptions:
+        match: "^(https://|http://localhost)"
+
+  # No permitir esquemas de seguridad básicos
+  no-basic-auth:
+    description: "No se debe usar HTTP Basic Auth en APIs bancarias. Usar Bearer/JWT."
+    severity: error
+    given: "$.components.securitySchemes[*]"
+    then:
+      field: "scheme"
+      function: pattern
+      functionOptions:
+        notMatch: "^basic$"
+
+  # ── DATOS SENSIBLES ────────────────────────────────────────
+
+  # Los campos numéricos financieros deben tener máximos
+  financial-amount-limits:
+    description: "Los campos de monto deben tener un valor máximo definido para prevenir transferencias anómalas."
+    severity: warn
+    given: "$.components.schemas..properties.amount"
+    then:
+      field: "maximum"
+      function: truthy
+
+  # Los IDs de cuenta deben usar UUID, no secuenciales
+  account-id-format:
+    description: "Los IDs de cuenta deben usar formato UUID para prevenir enumeración (IDOR)."
+    severity: warn
+    given: "$.components.schemas..properties.account_id"
+    then:
+      field: "format"
+      function: pattern
+      functionOptions:
+        match: "^uuid$"
+
+  # ── BUENAS PRÁCTICAS ───────────────────────────────────────
+
+  # Cada operación debe tener un operationId
+  operation-operationId:
+    description: "Cada operación debe tener un operationId único para trazabilidad."
+    severity: error
+    given: "$.paths[*][get,post,put,patch,delete]"
+    then:
+      field: "operationId"
+      function: truthy
+
+  # Respuestas de error deben estar definidas
+  error-responses-defined:
+    description: "Cada operación debe definir respuestas 401 y 403."
+    severity: warn
+    given: "$.paths[*][get,post,put,patch,delete].responses"
+    then:
+      - field: "401"
+        function: truthy
+      - field: "403"
+        function: truthy
+
+  # Rate limiting debe estar documentado
+  rate-limit-response:
+    description: "Las operaciones deben documentar la respuesta 429 (rate limiting)."
+    severity: info
+    given: "$.paths[*][get,post,put,patch,delete].responses"
+    then:
+      field: "429"
+      function: truthy
+
+  # Descripción obligatoria en operaciones
+  operation-description:
+    description: "Cada operación debe tener una descripción que explique su propósito."
+    severity: warn
+    given: "$.paths[*][get,post,put,patch,delete]"
+    then:
+      field: "description"
+      function: truthy
+
+  # Tags obligatorios para organización
+  operation-tags:
+    description: "Cada operación debe tener al menos un tag para organización."
+    severity: warn
+    given: "$.paths[*][get,post,put,patch,delete]"
+    then:
+      field: "tags"
+      function: truthy
