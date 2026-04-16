@@ -7,6 +7,7 @@
 [![OWASP](https://img.shields.io/badge/OWASP-API%20Top%2010-orange?logo=owasp)](https://owasp.org/API-Security/)
 
 > **La especificación OpenAPI como contrato de seguridad**: un pipeline DevSecOps completo que genera validaciones de seguridad automáticas a partir de la spec de tu API bancaria.
+> 
 
 📺 **Presentado en [Techno Week 8.0](https://ardops.dev) — Banco de Costa Rica**
 
