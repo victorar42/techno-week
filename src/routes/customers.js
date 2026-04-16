@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
+const authorizeAccount = require("../middleware/authorize");
+const { validate: isUuid } = require("uuid");
 
-// ⚠️ SIN autenticación — cualquiera puede acceder
 const MOCK_CUSTOMERS = {
   "12345": {
     name: "María García Rodríguez",
