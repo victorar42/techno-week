@@ -168,7 +168,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: zap-results
-          path: zap-report.html
+          path: report_html.html
 
   # ════════════════════════════════════════════════════════════
   # ETAPA 6: Generar Reporte de Compliance
