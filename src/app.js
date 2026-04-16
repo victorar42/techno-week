@@ -57,6 +57,7 @@ app.use("/api/v1/accounts", authMiddleware, transactionRoutes);
 const customerRoutes = require("./routes/customers");
 app.use("/api/v1/customers", authMiddleware, customerRoutes);
 
+
 // ── 404 Handler ─────────────────────────────────────────────
 app.use((_req, res) => {
   res.status(404).json({
