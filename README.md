@@ -1,5 +1,6 @@
 # 🔒 Spec-Driven DevSecOps for Banking APIs
 
+
 [![DevSecOps Pipeline](https://github.com/ardops/spec-driven-devsecops/actions/workflows/devsecops-pipeline.yml/badge.svg)](https://github.com/ardops/spec-driven-devsecops/actions)
 [![OpenAPI](https://img.shields.io/badge/OpenAPI-3.1-green?logo=openapiinitiative)](./openapi.yaml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
