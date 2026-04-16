@@ -397,3 +397,36 @@ paths:
           $ref: "#/components/responses/NotFound"
         "429":
           $ref: "#/components/responses/RateLimited"
+
+  /customers/{customer_id}/profile:
+    get:
+      operationId: getCustomerProfile
+      summary: Obtener perfil del cliente
+      description: Retorna la información personal del cliente
+      tags:
+        - Customers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Perfil del cliente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  email:
+                    type: string
+                    format: email
+                  cedula:
+                    type: string
+                  phone:
+                    type: string
