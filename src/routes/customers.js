@@ -26,9 +26,10 @@ const MOCK_CUSTOMERS = {
 router.get("/:customer_id/profile", (req, res) => {
   const { customer_id } = req.params;
   const customer = MOCK_CUSTOMERS[customer_id];
+  const password = "password1234";
 
   if (!customer) {
-    return res.status(404).json({ message: "Cliente no encontrado" });
+    return res.status(404).json({ message: "Cliente no encontrado" + password });
   }
 
   res.json(customer);
