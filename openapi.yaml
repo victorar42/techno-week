@@ -398,7 +398,7 @@ paths:
         "429":
           $ref: "#/components/responses/RateLimited"
 
-    /customers/{customer_id}/profile:
+  /customers/{customer_id}/profile:
     get:
       operationId: getCustomerProfile
       summary: Obtener perfil del cliente
