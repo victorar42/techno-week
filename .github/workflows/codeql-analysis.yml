@@ -18,10 +18,12 @@
 name: "🛡️ CodeQL Analysis (GHAS)"
 
 on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main]
+  # pull_request:
+  #   branches: [main]
+  # push:
+  #   branches: [main]
+  # schedule:
+  workflow_dispatch: # Solo ejecución manual por ahora
   schedule:
     # Correr semanalmente para detectar vulnerabilidades nuevas
     # en dependencias o patrones recién catalogados

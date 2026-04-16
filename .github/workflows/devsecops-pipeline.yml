@@ -181,14 +181,13 @@ jobs:
 
       - name: Generate compliance report
         id: report
+        env:
+          SPEC_LINT: ${{ needs.spec-lint.result }}
+          SAST: ${{ needs.sast.result }}
+          SECRETS: ${{ needs.secrets.result }}
+          DEPS: ${{ needs.dependency-check.result }}
+          DAST: ${{ needs.dast.result }}
         run: |
-          # Collect job statuses
-          SPEC_LINT="${{ needs.spec-lint.result }}"
-          SAST="${{ needs.sast.result }}"
-          SECRETS="${{ needs.secrets.result }}"
-          DEPS="${{ needs.dependency-check.result }}"
-          DAST="${{ needs.dast.result }}"
-
           # Map status to emoji
           status_emoji() {
             case "$1" in
@@ -206,11 +205,11 @@ jobs:
           |-------|--------|------|
           REPORT_EOF
 
-          echo "| OpenAPI Spec Lint | $(status_emoji $SPEC_LINT) $SPEC_LINT | Spectral |" >> report.md
-          echo "| Static Analysis (SAST) | $(status_emoji $SAST) $SAST | Semgrep |" >> report.md
-          echo "| Secret Detection | $(status_emoji $SECRETS) $SECRETS | Gitleaks |" >> report.md
-          echo "| Dependency Scan | $(status_emoji $DEPS) $DEPS | npm audit |" >> report.md
-          echo "| Dynamic Testing (DAST) | $(status_emoji $DAST) $DAST | OWASP ZAP |" >> report.md
+          echo "| OpenAPI Spec Lint | $(status_emoji "$SPEC_LINT") $SPEC_LINT | Spectral |" >> report.md
+          echo "| Static Analysis (SAST) | $(status_emoji "$SAST") $SAST | Semgrep |" >> report.md
+          echo "| Secret Detection | $(status_emoji "$SECRETS") $SECRETS | Gitleaks |" >> report.md
+          echo "| Dependency Scan | $(status_emoji "$DEPS") $DEPS | npm audit |" >> report.md
+          echo "| Dynamic Testing (DAST) | $(status_emoji "$DAST") $DAST | OWASP ZAP |" >> report.md
 
           echo "" >> report.md
           echo "---" >> report.md
