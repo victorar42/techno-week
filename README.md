@@ -1,11 +1,13 @@
 # 🔒 Spec-Driven DevSecOps for Banking APIs
 
+
 [![DevSecOps Pipeline](https://github.com/ardops/spec-driven-devsecops/actions/workflows/devsecops-pipeline.yml/badge.svg)](https://github.com/ardops/spec-driven-devsecops/actions)
 [![OpenAPI](https://img.shields.io/badge/OpenAPI-3.1-green?logo=openapiinitiative)](./openapi.yaml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![OWASP](https://img.shields.io/badge/OWASP-API%20Top%2010-orange?logo=owasp)](https://owasp.org/API-Security/)
 
 > **La especificación OpenAPI como contrato de seguridad**: un pipeline DevSecOps completo que genera validaciones de seguridad automáticas a partir de la spec de tu API bancaria.
+> 
 
 📺 **Presentado en [Techno Week 8.0](https://ardops.dev) — Banco de Costa Rica**
 
