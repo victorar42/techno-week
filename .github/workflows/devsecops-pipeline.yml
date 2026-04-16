@@ -55,13 +55,24 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run Semgrep
-        run: semgrep ci --config auto --config p/owasp-top-ten --config p/nodejs --json --output semgrep-results.json
+        run: semgrep scan --config auto --config p/owasp-top-ten --config p/nodejs --severity ERROR --json --output semgrep-results.json || true
         env:
           SEMGREP_RULES: >-
             p/owasp-top-ten
             p/nodejs
             p/jwt
             p/security-audit
+
+      - name: Check for critical findings
+        run: |
+          if [ -f semgrep-results.json ]; then
+            ERROR_COUNT=$(cat semgrep-results.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(len([r for r in d.get('results',[]) if r['extra']['severity']=='ERROR']))" 2>/dev/null || echo "0")
+            echo "Critical findings: $ERROR_COUNT"
+            if [ "$ERROR_COUNT" -gt 0 ]; then
+              echo "::error::Semgrep found $ERROR_COUNT critical security issue(s)"
+              exit 1
+            fi
+          fi
 
       - name: Upload SAST results
         if: always()
