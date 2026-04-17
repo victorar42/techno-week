@@ -176,7 +176,7 @@ jobs:
   compliance-report:
     name: "📊 Compliance Report"
     runs-on: ubuntu-latest
-    needs: [spec-lint, sast, secrets, dependency-check, dast]
+    needs: [spec-lint, sast, secrets, dependency-check, dast, drift-check]
     if: always()
     steps:
       - uses: actions/checkout@v4
@@ -194,6 +194,7 @@ jobs:
           SECRETS: ${{ needs.secrets.result }}
           DEPS: ${{ needs.dependency-check.result }}
           DAST: ${{ needs.dast.result }}
+          DRIFT: "${{ needs.drift-check.result }}"
           COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           # Map status to emoji
@@ -233,6 +234,7 @@ jobs:
           | Secret Detection | $(status_emoji "$SECRETS") $SECRETS | Gitleaks |
           | Dependency Scan | $(status_emoji "$DEPS") $DEPS | npm audit |
           | Dynamic Testing (DAST) | $(status_emoji "$DAST") $DAST | OWASP ZAP |
+          | Endpoint Drift | $(status_emoji "$DRIFT") $DRIFT | detect-drift.js |
 
           **Result:** $OVERALL
 
@@ -257,3 +259,23 @@ jobs:
         run: |
           echo "::error::One or more DevSecOps checks failed. Fix the issues and push again."
           exit 1
+# ════════════════════════════════════════════════════════════
+  # ETAPA 7: Endpoint Drift Detection
+  # ════════════════════════════════════════════════════════════
+  drift-check:
+    name: "🔍 Drift — Spec vs Code"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Detect endpoint drift
+        run: node scripts/detect-drift.js
