@@ -1,4 +1,4 @@
-openapi: "3.1.0"
+openapi: 3.1.0
 info:
   title: SecureBank API
   description: |
@@ -6,25 +6,18 @@ info:
     Esta spec actúa como el **contrato de seguridad**: cada endpoint debe definir
     su esquema de autenticación, sus formatos de datos, y sus restricciones.
     El pipeline de CI/CD valida automáticamente que el código cumpla con esta spec.
-  version: "1.0.0"
+  version: 1.0.0
   contact:
     name: ARDOps
     url: https://ardops.dev
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-
 servers:
   - url: http://localhost:3000/api/v1
     description: Local development
   - url: https://api.ardops.dev/v1
     description: Production
-
-# ┌─────────────────────────────────────────────────┐
-# │  SECURITY SCHEMES - Definidos una vez, usados   │
-# │  en cada endpoint. Si un endpoint no los usa,   │
-# │  Spectral lo detecta como violación.            │
-# └─────────────────────────────────────────────────┘
 components:
   securitySchemes:
     BearerAuth:
@@ -34,9 +27,7 @@ components:
       description: |
         Token JWT emitido por el servicio de autenticación.
         Debe incluir claims: sub (user_id), role, exp, iat.
-
   schemas:
-    # ── Account ──────────────────────────────────
     AccountBalance:
       type: object
       required:
@@ -50,33 +41,33 @@ components:
           type: string
           format: uuid
           description: Identificador único de la cuenta
-          example: "550e8400-e29b-41d4-a716-446655440000"
+          example: 550e8400-e29b-41d4-a716-446655440000
         account_number:
           type: string
-          pattern: "^CR\\d{20}$"
+          pattern: ^CR\d{20}$
           description: Número IBAN costarricense
-          example: "CR05015202001026284066"
+          example: CR05015202001026284066
         currency:
           type: string
-          enum: [CRC, USD]
+          enum:
+            - CRC
+            - USD
           description: Moneda de la cuenta
         available_balance:
           type: number
           format: double
           minimum: 0
           description: Saldo disponible
-          example: 1250000.50
+          example: 1250000.5
         ledger_balance:
           type: number
           format: double
           description: Saldo contable
-          example: 1350000.50
+          example: 1350000.5
         as_of:
           type: string
           format: date-time
           description: Timestamp de la consulta
-
-    # ── Transfer ─────────────────────────────────
     TransferRequest:
       type: object
       required:
@@ -100,7 +91,9 @@ components:
           description: Monto de la transferencia (máximo 50M CRC)
         currency:
           type: string
-          enum: [CRC, USD]
+          enum:
+            - CRC
+            - USD
         description:
           type: string
           minLength: 1
@@ -110,7 +103,6 @@ components:
           type: string
           maxLength: 50
           description: Referencia externa opcional
-
     TransferResponse:
       type: object
       required:
@@ -123,7 +115,11 @@ components:
           format: uuid
         status:
           type: string
-          enum: [pending, completed, failed, reversed]
+          enum:
+            - pending
+            - completed
+            - failed
+            - reversed
         source_account_id:
           type: string
           format: uuid
@@ -135,12 +131,12 @@ components:
           format: double
         currency:
           type: string
-          enum: [CRC, USD]
+          enum:
+            - CRC
+            - USD
         created_at:
           type: string
           format: date-time
-
-    # ── Transactions ─────────────────────────────
     Transaction:
       type: object
       required:
@@ -155,13 +151,17 @@ components:
           format: uuid
         type:
           type: string
-          enum: [credit, debit]
+          enum:
+            - credit
+            - debit
         amount:
           type: number
           format: double
         currency:
           type: string
-          enum: [CRC, USD]
+          enum:
+            - CRC
+            - USD
         description:
           type: string
         counterparty:
@@ -173,7 +173,6 @@ components:
         balance_after:
           type: number
           format: double
-
     TransactionList:
       type: object
       required:
@@ -198,8 +197,6 @@ components:
               type: integer
             total_pages:
               type: integer
-
-    # ── Errors ───────────────────────────────────
     Error:
       type: object
       required:
@@ -209,15 +206,14 @@ components:
         code:
           type: string
           description: Código de error interno
-          example: "AUTH_001"
+          example: AUTH_001
         message:
           type: string
           description: Mensaje descriptivo del error
-          example: "Token de autenticación inválido o expirado"
+          example: Token de autenticación inválido o expirado
         details:
           type: object
           description: Detalles adicionales del error
-
   responses:
     Unauthorized:
       description: Token de autenticación inválido o ausente
@@ -226,8 +222,8 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
           example:
-            code: "AUTH_001"
-            message: "Token de autenticación inválido o expirado"
+            code: AUTH_001
+            message: Token de autenticación inválido o expirado
     Forbidden:
       description: No tiene permisos para acceder a este recurso
       content:
@@ -235,8 +231,8 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
           example:
-            code: "AUTH_002"
-            message: "No tiene permisos para acceder a esta cuenta"
+            code: AUTH_002
+            message: No tiene permisos para acceder a esta cuenta
     NotFound:
       description: Recurso no encontrado
       content:
@@ -250,13 +246,8 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
           example:
-            code: "RATE_001"
-            message: "Ha excedido el límite de solicitudes. Intente de nuevo en 60 segundos"
-
-# ┌─────────────────────────────────────────────────┐
-# │  PATHS - Cada endpoint DEBE tener security      │
-# │  definido. Si no lo tiene, Spectral falla.      │
-# └─────────────────────────────────────────────────┘
+            code: RATE_001
+            message: Ha excedido el límite de solicitudes. Intente de nuevo en 60 segundos
 paths:
   /accounts/{account_id}/balance:
     get:
@@ -292,7 +283,6 @@ paths:
           $ref: "#/components/responses/NotFound"
         "429":
           $ref: "#/components/responses/RateLimited"
-
   /transfers:
     post:
       operationId: createTransfer
@@ -338,7 +328,6 @@ paths:
                 $ref: "#/components/schemas/Error"
         "429":
           $ref: "#/components/responses/RateLimited"
-
   /accounts/{account_id}/transactions:
     get:
       operationId: getAccountTransactions
@@ -397,5 +386,35 @@ paths:
           $ref: "#/components/responses/NotFound"
         "429":
           $ref: "#/components/responses/RateLimited"
-
-
+  /customers/{customer_id}/profile:
+    get:
+      operationId: getCustomersProfile
+      summary: "TODO: Agregar descripcion para GET /customers/{customer_id}/profile"
+      description: "TODO: Describir que hace este endpoint, que datos maneja, y que validaciones aplica."
+      tags:
+        - Customers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: "TODO: Describir customer_id"
+      responses:
+        "200":
+          description: "TODO: Describir respuesta exitosa"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  TODO_field:
+                    type: string
+                    description: "TODO: Definir campos de la respuesta"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
