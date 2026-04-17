@@ -405,8 +405,6 @@ paths:
       description: Retorna la información personal del cliente
       tags:
         - Customers
-      security:
-        - BearerAuth: []
       parameters:
         - name: customer_id
           in: path
