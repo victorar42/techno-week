@@ -22,8 +22,13 @@ const MOCK_CUSTOMERS = {
   },
 };
 
-router.get("/:customer_id/profile", (req, res) => {
+router.get("/:customer_id/profile", authorizeAccount, (req, res) => {
   const { customer_id } = req.params;
+
+  if (!isUuid(customer_id) && !MOCK_CUSTOMERS[customer_id]) {
+    return res.status(400).json({ code: "VAL_001", message: "ID de cliente inválido" });
+  }
+
   const customer = MOCK_CUSTOMERS[customer_id];
 
   if (!customer) {
