@@ -1,0 +1,26 @@
+rules:
+  - id: express-route-without-auth-middleware
+    patterns:
+      - pattern: |
+          $APP.use("...", $ROUTES)
+      - pattern-not: |
+          $APP.use("...", authMiddleware, $ROUTES)
+      - pattern-not: |
+          $APP.use("...", $AUTH, $ROUTES)
+        metavariable-regex:
+          metavariable: $AUTH
+          regex: ".*[Aa]uth.*"
+    message: >
+      Ruta Express montada sin middleware de autenticación.
+      Todos los endpoints de API deben estar protegidos con authMiddleware.
+      OWASP A01:2021 - Broken Access Control.
+    languages: [javascript]
+    severity: ERROR
+    metadata:
+      category: security
+      technology:
+        - express
+      owasp:
+        - A01:2021 - Broken Access Control
+      cwe:
+        - "CWE-306: Missing Authentication for Critical Function"

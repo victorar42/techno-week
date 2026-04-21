@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Genera un token JWT para pruebas y para la demo en vivo.
+ * Genera un token JWT para pruebas y para la prueba en caliente.
  *
  * Uso:
  *   node scripts/generate-token.js
