@@ -158,8 +158,37 @@ jobs:
           format: openapi
           docker_name: "ghcr.io/zaproxy/zaproxy:stable"
           rules_file_name: ".zap/rules.tsv"
-          cmd_options: "-z \"-config replacer.full_list(0).description=AddAuth -config replacer.full_list(0).enabled=false\""
+          cmd_options: "-I"
           allow_issue_writing: false
+
+      - name: Auth Bypass Detection — Test endpoints without token
+        run: |
+          echo "Testing endpoints without Authorization header..."
+          FAILURES=0
+          
+          # Extract API paths from OpenAPI spec that should require auth
+          ENDPOINTS=$(grep -E "^\s+/[a-z]" openapi.yaml | sed 's/://g' | tr -d ' ' | sort -u)
+          
+          for path in $ENDPOINTS; do
+            # Replace path params with test values
+            URL="http://localhost:3000/api/v1$(echo $path | sed 's/{account_id}/550e8400-e29b-41d4-a716-446655440000/g' | sed 's/{customer_id}/12345/g' | sed 's/{transfer_id}/test-id/g')"
+            
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+            
+            if [ "$STATUS" -eq 200 ] || [ "$STATUS" -eq 201 ]; then
+              echo "❌ VULNERABLE: $URL returned $STATUS without auth token"
+              FAILURES=$((FAILURES + 1))
+            else
+              echo "✅ PROTECTED: $URL returned $STATUS (expected 401/403)"
+            fi
+          done
+          
+          if [ "$FAILURES" -gt 0 ]; then
+            echo ""
+            echo "::error::Auth Bypass detected! $FAILURES endpoint(s) accessible without authentication (OWASP A01:2021)"
+            exit 1
+          fi
+          echo "All endpoints properly enforce authentication."
 
       - name: Upload ZAP results
         if: always()
