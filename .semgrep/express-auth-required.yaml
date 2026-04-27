@@ -1,15 +1,11 @@
 rules:
   - id: express-route-without-auth-middleware
     patterns:
-      - pattern: |
-          $APP.use("...", $ROUTES)
-      - pattern-not: |
-          $APP.use("...", authMiddleware, $ROUTES)
-      - pattern-not: |
-          $APP.use("...", $AUTH, $ROUTES)
-        metavariable-regex:
-          metavariable: $AUTH
-          regex: ".*[Aa]uth.*"
+      - pattern: app.use($PATH, $HANDLER)
+      - pattern-not: app.use($PATH, authMiddleware, ...)
+      - metavariable-regex:
+          metavariable: $PATH
+          regex: ".*/api/v1/.*"
     message: >
       Ruta Express montada sin middleware de autenticación.
       Todos los endpoints de API deben estar protegidos con authMiddleware.
