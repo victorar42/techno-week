@@ -393,8 +393,8 @@ paths:
       description: "TODO: Describir que hace este endpoint, que datos maneja, y que validaciones aplica."
       tags:
         - Customers
-      security:
-        - BearerAuth: []
+      #security:
+      #  - BearerAuth: []
       parameters:
         - name: customer_id
           in: path

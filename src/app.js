@@ -54,11 +54,11 @@ app.get("/health", (_req, res) => {
 app.use("/api/v1/accounts", authMiddleware, balanceRoutes);
 app.use("/api/v1/transfers", authMiddleware, transferRoutes);
 app.use("/api/v1/accounts", authMiddleware, transactionRoutes);
-const customerRoutes = require("./routes/customers");
-app.use("/api/v1/customers", authMiddleware, customerRoutes);
-
 //const customerRoutes = require("./routes/customers");
-//app.use("/api/v1/customers", customerRoutes);
+//app.use("/api/v1/customers", authMiddleware, customerRoutes);
+
+const customerRoutes = require("./routes/customers");
+app.use("/api/v1/customers", customerRoutes);
 
 
 // ── 404 Handler ─────────────────────────────────────────────
